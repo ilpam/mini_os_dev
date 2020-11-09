@@ -128,9 +128,12 @@ p_mode_start:
    mov ax,SELECTOR_VIDEO
    mov gs,ax
    
-; load kernel here
-; todo !!!
-; end load kernel here
+; start load kernel here
+   mov eax, KERNEL_START_SECTOR
+   mov ebx, KERNEL_BIN_BASE_ADDR
+   mov ecx, 200
+   call rd_disk_m_32
+; end load kernel
 
 ; after kernel load, call setup_page here
    call setup_page
@@ -153,12 +156,84 @@ p_mode_start:
    mov cr0, eax
 
    ; reload gdt
-   lgdt [gdt_ptr]            
+   lgdt [gdt_ptr]  
 
-   mov byte [gs:160], 'V'
+   jmp SELECTOR_CODE:enter_kernel
+
+   enter_kernel:
+      call kernel_init
+      mov esp, 0xc009f000            ;why we use 0xc009f000 as stack top?
+      jmp KERNEL_ENTRY_POINT
 
    jmp $
 
+
+
+
+
+
+
+
+
+
+;-------------------------------------------------------------------------------------------------------
+;---------------------------------------------some called functions----------------------------------- 
+
+; function 
+; start---------------------read hard disk---------------------
+rd_disk_m_32:
+
+   mov esi, eax
+   mov di, cx
+
+   mov dx, 0x1f2
+   mov al, cl
+   out dx, al
+
+   mov eax, esi
+   ; 保存LBA地址
+   mov dx, 0x1f3
+   out dx, al
+
+   mov cl, 8
+   shr eax, cl
+   mov dx, 0x1f4
+   out dx, al
+
+   shr eax, cl
+   mov dx, 0x1f5
+   out dx, al
+
+   shr eax, cl
+   and al, 0x0f
+   or al, 0xe0
+   mov dx, 0x1f6
+   out dx, al
+
+   mov dx, 0x1f7
+   mov al, 0x20
+   out dx, al
+
+.not_ready:
+   nop
+   in al, dx
+   and al, 0x88
+   cmp al, 0x08
+   jnz .not_ready
+
+   mov ax, di
+   mov dx, 256
+   mul dx
+   mov cx, ax
+   mov dx, 0x1f0
+
+.go_on_read:
+   in ax, dx
+   mov [ds:ebx], ax
+   add ebx, 2
+   loop .go_on_read
+   ret
+; end----------------------read hard disk---------------------
 
 ; function setup_page
 ; start---------------- set up page directory and page table -------------------
@@ -206,3 +281,51 @@ setup_page:
    loop .create_kernel_pde
    ret
 ; end------------------ set up page directory and page table -------------------
+
+; function kernel_init
+; start----------------- copy segment from kernel.elf to runtime address-----------------------
+kernel_init:
+   xor eax, eax
+   xor ebx, ebx		
+   xor ecx, ecx	
+   xor edx, edx		
+
+   mov dx, [KERNEL_BIN_BASE_ADDR + 42]	  
+   mov ebx, [KERNEL_BIN_BASE_ADDR + 28]   
+					
+   add ebx, KERNEL_BIN_BASE_ADDR
+   mov cx, [KERNEL_BIN_BASE_ADDR + 44]    
+.each_segment:
+   cmp byte [ebx + 0], PT_NULL		
+   je .PTNULL
+
+   push dword [ebx + 16]		
+   mov eax, [ebx + 4]			  
+   add eax, KERNEL_BIN_BASE_ADDR	  
+   push eax			
+   push dword [ebx + 8]			
+   call mem_cpy				
+   add esp,12				
+.PTNULL:
+   add ebx, edx				
+   loop .each_segment
+   ret
+; end----------------- copy segment from kernel.elf to runtime address-----------------------
+
+
+;function mem_cpy
+;start-------------------copy-----------------------------
+mem_cpy:		      
+   cld
+   push ebp
+   mov ebp, esp
+   push ecx		   
+   mov edi, [ebp + 8]	   ; dst
+   mov esi, [ebp + 12]	   ; src
+   mov ecx, [ebp + 16]	   ; size
+   rep movsb		   
+
+   pop ecx		
+   pop ebp
+   ret
+;end-------------------copy-----------------------------
