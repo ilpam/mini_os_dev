@@ -1,2 +1,8 @@
 # mini_os_dev
-重新研读《操作系统真象还原》，记录逐步添加功能代码的过程
+
+chapter3:
+	
+chapter4:
+
+chapter5:
+	detect host physical memory size ok --- commit id:fe81852
