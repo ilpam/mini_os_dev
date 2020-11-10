@@ -19,10 +19,59 @@ struct gate_desc {
     uint16_t func_offset_high_word;
 };
 
+char* intr_name[IDT_DESC_CNT];
+intr_handler idt_table[IDT_DESC_CNT];
+
 static void make_idt_desc(struct gate_desc* p_gdesc, uint8_t attr, intr_handler function);
 static struct gate_desc idt[IDT_DESC_CNT];
 
 extern intr_handler intr_entry_table[IDT_DESC_CNT];
+
+static void general_intr_handler(uint8_t vec_nr) {
+    if (vec_nr == 0x27 || vec_nr == 0x2f) {
+        // 伪中断，无需处理
+        return;
+    }
+
+    put_str("int vector: 0x");
+    put_int(vec_nr);
+    put_char('\n');
+}
+
+static void init_custom_handler_name() {
+    intr_name[0] = "#DE Divide Error";
+    intr_name[1] = "#DB Debug Exception";
+    intr_name[2] = "NMI Interrupt";
+    intr_name[3] = "#BP Breakpoint Exception";
+    intr_name[4] = "#OF Overflow Exception";
+    intr_name[5] = "#BR BOUND Range Exceeded Exception";
+    intr_name[6] = "#UD Invalid Opcode Exception";
+    intr_name[7] = "#NM Device Not Available Exception";
+    intr_name[8] = "#DF Double Fault Exception";
+    intr_name[9] = "Coprocessor Segment Overrun";
+    intr_name[10] = "#TS Invalid TSS Exception";
+    intr_name[11] = "#NP Segment Not Present";
+    intr_name[12] = "#SS Stack Fault Exception";
+    intr_name[13] = "#GP General Protection Exception";
+    intr_name[14] = "#PF Page-Fault Exception";
+    intr_name[16] = "#MF 0x87 FPU Floating-Point Error";
+    intr_name[17] = "#AC Alignment Check Exception";
+    intr_name[18] = "#MC Machine-Check Exception";
+    intr_name[19] = "#XF SIMD Floating-Point Exception";
+}
+
+/*
+ * register general interrupt handler
+ */
+static void exception_handler_init(void) {
+    int i;
+    for (i = 0; i < IDT_DESC_CNT; i++) {
+        idt_table[i] = general_intr_handler;
+        intr_name[i] = "unknown";
+    }
+
+    init_custom_handler_name();
+}
 
 static void make_idt_desc(struct gate_desc* p_gdesc, uint8_t attr, intr_handler function) {
     p_gdesc->func_offset_low_word = (uint32_t) function & 0x0000FFFF;
@@ -63,6 +112,7 @@ static void pic_init(void) {
 void idt_init() {
     put_str("idt_init start.\n");
     idt_desc_init();
+    exception_handler_init();
     pic_init();
 
     uint64_t idt_operand = ((sizeof(idt) - 1) | ((uint64_t) ((uint32_t) idt << 16)));
