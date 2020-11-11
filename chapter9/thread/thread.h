@@ -2,6 +2,9 @@
 #define __THREAD_THREAD_H
 
 #include "stdint.h"
+#include "list.h"
+
+#define TASK_NAME_LEN 16
 
 typedef void thread_func(void*);
 
@@ -53,13 +56,21 @@ struct thread_stack {
 struct task_struct {
     uint32_t* self_kstack;
     enum task_status status;
+    char name[TASK_NAME_LEN];
     uint8_t priority;
-    char name[16];
+    uint8_t ticks;	  
+    uint32_t elapsed_ticks;
+    struct list_elem general_tag;				    
+    struct list_elem all_list_tag;
+    uint32_t* pgdir;          
     uint32_t stack_magic;
 };
 
 void thread_create(struct task_struct* pthread, thread_func function, void* func_args);
 void init_thread(struct task_struct* pthread, char* name, int prio);
 struct task_struct* thread_start(char* name, int prio, thread_func function, void* func_args);
+void schedule();
+void thread_init();
+struct task_struct* running_thread();
 
 #endif

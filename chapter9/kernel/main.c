@@ -3,30 +3,28 @@
 #include "debug.h"
 #include "memory.h"
 #include "thread.h"
+#include "interrupt.h"
 
-void k_thread_a(void *arg);
+void k_thread(void *arg);
 
 int main(void) {
     put_str("I am kernel.\n");
     init_all();
-    //asm volatile ("sti");
-    //ASSERT(1 == 2);
-
     put_str("Init done.\n");
-    #if 0 
-    void* vaddr = get_kernel_pages(3);
-    put_str("\nKernel memory virtual page start address: ");
-    put_int((uint32_t) vaddr);
-    put_char('\n');
-    #endif
 
-    thread_start("k_thread_a", 31, k_thread_a, "argA ");
+    thread_start("k_thread_a", 31, k_thread, "argA ");
+    thread_start("k_thread_b", 8, k_thread, "argB ");
 
-    while (1);
+    intr_enable();
+
+    while (1) {
+        put_str("main ");
+    }
+
     return 0;
 }
 
-void k_thread_a(void *arg)
+void k_thread(void *arg)
 {
     char *para = arg;
     while(1) {

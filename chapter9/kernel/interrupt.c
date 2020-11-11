@@ -64,15 +64,30 @@ enum intr_status intr_set_status(enum intr_status status) {
     return status & INTR_ON ? intr_enable() : intr_disable();
 }
 
-static void general_intr_handler(uint8_t vec_nr) {
-    if (vec_nr == 0x27 || vec_nr == 0x2f) {
-        // 伪中断，无需处理
-        return;
+static void general_intr_handler(uint8_t vec_nr) 
+{
+    if (vec_nr == 0x27 || vec_nr == 0x2f) {	
+        return;		
     }
 
-    put_str("int vector: 0x");
-    put_int(vec_nr);
-    put_char('\n');
+    set_cursor(0);
+    int cursor_pos = 0;
+    while(cursor_pos < 320) {
+        put_char(' ');
+        cursor_pos++;
+    }
+
+    set_cursor(0);	 
+    put_str("!!!!!!!      excetion message begin  !!!!!!!!\n");
+    set_cursor(88);	
+    put_str(intr_name[vec_nr]);
+    if (vec_nr == 14) {	 
+        int page_fault_vaddr = 0; 
+        asm ("movl %%cr2, %0" : "=r" (page_fault_vaddr));	  
+        put_str("\npage fault addr is 0x");put_int(page_fault_vaddr); 
+    }
+    put_str("\n!!!!!!!      excetion message end    !!!!!!!!\n");
+    while(1);
 }
 
 static void init_custom_handler_name() {
@@ -144,6 +159,10 @@ static void pic_init(void) {
     outb(PIC_S_DATA, 0xff);
 
     put_str("pic_init done.\n");
+}
+
+void register_handler(uint8_t vector_no, intr_handler function) {
+    idt_table[vector_no] = function; 
 }
 
 void idt_init() {
