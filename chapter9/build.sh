@@ -25,7 +25,6 @@ echo "linking..."
 ld -m elf_i386 ./build/main.o ./build/print.o ./build/kernel.o ./build/init.o ./build/interrupt.o ./build/timer.o ./build/debug.o ./build/string.o \
     ./build/bitmap.o ./build/memory.o ./build/thread.o ./build/list.o ./build/switch.o \
     -Ttext 0xc0001500 -e main -Map ./build/kernel.map -o ./build/kernel.elf
-  #  ./build/thread.o   \
 
 # AMD x86-64 mode
 #nasm -f elf64 ./lib/kernel/print.asm -o ./build/print.o
