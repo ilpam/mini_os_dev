@@ -13,9 +13,14 @@ gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I .
 gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I ./kernel/ -c ./kernel/interrupt.c -o ./build/interrupt.o
 gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I ./kernel/ -c ./device/timer.c -o ./build/timer.o
 gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I ./kernel/ -c ./kernel/debug.c -o ./build/debug.o
+gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I ./kernel/ -c ./lib/string.c -o ./build/string.o
+gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I ./kernel/ -c ./lib/kernel/bitmap.c -o ./build/bitmap.o
+gcc -Wall -m32 -fno-builtin -fno-stack-protector -I ./lib/kernel/ -I ./lib/ -I ./kernel/ -c ./kernel/memory.c -o ./build/memory.o
 
 echo "linking..."
-ld -m elf_i386 ./build/main.o ./build/print.o ./build/kernel.o ./build/init.o ./build/interrupt.o ./build/timer.o ./build/debug.o -Ttext 0xc0001500 -e main -o ./build/kernel.elf
+ld -m elf_i386 ./build/main.o ./build/print.o ./build/kernel.o ./build/init.o ./build/interrupt.o ./build/timer.o ./build/debug.o ./build/string.o \
+    ./build/bitmap.o ./build/memory.o \
+    -Ttext 0xc0001500 -e main -o ./build/kernel.elf
 
 # AMD x86-64 mode
 #nasm -f elf64 ./lib/kernel/print.asm -o ./build/print.o
